@@ -17,7 +17,7 @@ jobs:
     name: promtool / amtool
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check Prometheus config and rules
         run: make check
@@ -29,7 +29,7 @@ jobs:
     name: dashboards / compose
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate dashboard JSON
         run: |
@@ -47,7 +47,7 @@ jobs:
     name: yamllint / ansible-lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -68,7 +68,7 @@ jobs:
     name: gitleaks / trivy config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
