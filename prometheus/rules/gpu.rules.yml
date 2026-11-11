@@ -28,6 +28,26 @@ groups:
           summary: "GPU {{ $labels.gpu }} on {{ $labels.Hostname }} reported an XID error"
           description: "XID errors point to driver, memory or hardware faults. Drain the node and check: nvidia-smi -q"
 
+      # Ampere and newer replace failing memory rows. A remap needs a GPU reset to take effect;
+      # a failed remap means the GPU has run out of spare rows.
+      - alert: GPUUncorrectableMemoryError
+        expr: increase(DCGM_FI_DEV_UNCORRECTABLE_REMAPPED_ROWS[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu }} on {{ $labels.Hostname }} remapped a memory row after an uncorrectable error"
+          description: "The remap takes effect after a GPU reset. Drain the node, let jobs finish, then reset the GPU (nvidia-smi -r) or reboot."
+
+      - alert: GPURowRemapFailure
+        expr: DCGM_FI_DEV_ROW_REMAP_FAILURE > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU {{ $labels.gpu }} on {{ $labels.Hostname }} failed to remap a memory row"
+          description: "The GPU has no spare rows left and is not safe for jobs. Keep the node drained and open a hardware ticket (RMA)."
+
       # GPUs are allocated to jobs but barely used: wasted, expensive capacity.
       - alert: GPUsAllocatedButIdle
         expr: max(slurm_gpus_alloc) > 0 and avg(DCGM_FI_DEV_GPU_UTIL) < 10

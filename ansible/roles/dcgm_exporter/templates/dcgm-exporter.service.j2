@@ -1,14 +1,29 @@
 # {{ ansible_managed }}
 [Unit]
 Description=NVIDIA DCGM exporter (Podman)
+{% if dcgm_exporter_hostengine %}
+After=network-online.target nvidia-persistenced.service nvidia-dcgm.service
+Wants=network-online.target nvidia-dcgm.service
+{% else %}
 After=network-online.target nvidia-persistenced.service
 Wants=network-online.target
+{% endif %}
 
 [Service]
 ExecStartPre=-/usr/bin/podman rm -f dcgm-exporter
+{% if dcgm_exporter_hostengine %}
+# Reads from the node's DCGM host engine (host network to reach it on localhost); no extra
+# capabilities needed because profiling runs in the host engine.
+ExecStart=/usr/bin/podman run --name dcgm-exporter --rm \
+  --network host --device nvidia.com/gpu=all \
+  {{ dcgm_exporter_image }} \
+  --remote-hostengine-info {{ dcgm_exporter_hostengine }} --address :{{ dcgm_exporter_port }}
+{% else %}
+# Embedded DCGM engine inside the container; SYS_ADMIN is needed for profiling metrics.
 ExecStart=/usr/bin/podman run --name dcgm-exporter --rm \
   --device nvidia.com/gpu=all --cap-add SYS_ADMIN \
   -p {{ dcgm_exporter_port }}:9400 {{ dcgm_exporter_image }}
+{% endif %}
 ExecStop=/usr/bin/podman stop -t 10 dcgm-exporter
 Restart=on-failure
 

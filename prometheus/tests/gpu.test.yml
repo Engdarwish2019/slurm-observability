@@ -27,6 +27,44 @@ tests:
 
   - interval: 1m
     input_series:
+      - series: 'DCGM_FI_DEV_UNCORRECTABLE_REMAPPED_ROWS{job="dcgm", instance="gpu-01:9400", gpu="1", Hostname="gpu-01"}'
+        values: "0x10 1x10"
+      - series: 'DCGM_FI_DEV_ROW_REMAP_FAILURE{job="dcgm", instance="gpu-01:9400", gpu="1", Hostname="gpu-01"}'
+        values: "0x10 1x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: GPUUncorrectableMemoryError
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: GPURowRemapFailure
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: GPUUncorrectableMemoryError
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: dcgm
+              instance: gpu-01:9400
+              gpu: "1"
+              Hostname: gpu-01
+            exp_annotations:
+              summary: "GPU 1 on gpu-01 remapped a memory row after an uncorrectable error"
+              description: "The remap takes effect after a GPU reset. Drain the node, let jobs finish, then reset the GPU (nvidia-smi -r) or reboot."
+      - eval_time: 15m
+        alertname: GPURowRemapFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: dcgm
+              instance: gpu-01:9400
+              gpu: "1"
+              Hostname: gpu-01
+            exp_annotations:
+              summary: "GPU 1 on gpu-01 failed to remap a memory row"
+              description: "The GPU has no spare rows left and is not safe for jobs. Keep the node drained and open a hardware ticket (RMA)."
+
+  - interval: 1m
+    input_series:
       - series: 'slurm_gpus_alloc{job="slurm", instance="head:8080"}'
         values: "4x90"
       - series: 'DCGM_FI_DEV_GPU_UTIL{job="dcgm", instance="gpu-01:9400", gpu="0", Hostname="gpu-01"}'

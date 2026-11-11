@@ -49,6 +49,8 @@ flowchart LR
 | `SlurmJobsPendingWithIdleCPUs` | warning | Jobs wait while CPUs are idle: a limit, reservation or config issue, not missing capacity |
 | `SlurmClusterSaturated` | info | Capacity planning signal |
 | `GPUXidError` | critical | Driver, memory or hardware fault: drain the node |
+| `GPURowRemapFailure` | critical | The GPU ran out of spare memory rows: keep it drained, RMA |
+| `GPUUncorrectableMemoryError` | warning | A memory row was remapped after an uncorrectable error: reset the GPU once jobs finish |
 | `GPUHighTemperature` | warning | Thermal throttling |
 | `GPUsAllocatedButIdle` | info | GPUs held by jobs but under 10% used: wasted, expensive capacity |
 
@@ -102,7 +104,14 @@ Slurm test checks that 120 pending jobs with 10% CPU allocation fire
 |---|---|---|
 | node_exporter | all nodes | [prometheus/node_exporter](https://github.com/prometheus/node_exporter) |
 | prometheus-slurm-exporter | controller | [vpenso/prometheus-slurm-exporter](https://github.com/vpenso/prometheus-slurm-exporter), built from a pinned tag |
-| dcgm-exporter | GPU nodes | [NVIDIA/dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter), Podman with CDI |
+| dcgm-exporter | GPU nodes | [NVIDIA/dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter) (DCGM 4), Podman with CDI |
+
+GPU nodes run **one DCGM host engine** (`nvidia-dcgm`, installed by the `nvidia_gpu` role in
+[ansible-hpc-roles](https://github.com/Engdarwish2019/ansible-hpc-roles)). dcgm-exporter reads from
+it (`--remote-hostengine-info localhost:5555`) instead of starting a second, embedded engine, so
+the exporter, `dcgmi diag` and the Slurm node health check all see the same GPU state and the
+profiling counters are not fought over. Set `dcgm_exporter_hostengine: ""` for the embedded engine
+on nodes without one.
 
 ## Related projects
 

@@ -1,5 +1,11 @@
 ---
-dcgm_exporter_image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.9-3.6.1-ubuntu22.04
+# DCGM 4 based release; it keeps the metric names the alert rules and dashboards use
+# (4.9 renamed several of them).
+dcgm_exporter_image: nvcr.io/nvidia/k8s/dcgm-exporter:4.5.2-4.8.1-ubuntu22.04
 dcgm_exporter_port: 9400
+# One DCGM host engine per node: read from the nvidia-dcgm service that ansible-hpc-roles
+# (nvidia_gpu role) runs, which dcgmi diag and the Slurm health check use too. Set to "" to
+# run the exporter's embedded engine instead, only on nodes without a host engine.
+dcgm_exporter_hostengine: localhost:5555
 dcgm_exporter_toolkit_repo: https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
 dcgm_exporter_allowed_sources: "{{ [monitoring_server ~ '/32'] if monitoring_server is defined else [] }}"
