@@ -1,0 +1,85 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prometheus:
+    name: promtool / amtool
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Prometheus config and rules
+        run: make check
+
+      - name: Unit-test alert rules
+        run: make test
+
+  dashboards-and-compose:
+    name: dashboards / compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate dashboard JSON
+        run: |
+          for f in grafana/dashboards/*.json; do
+            jq -e '.uid and .title and (.panels | length > 0)' "$f" > /dev/null
+            echo "ok: $f"
+          done
+
+      - name: Validate docker compose file
+        run: |
+          echo "ci-only" > secrets/grafana_admin_password
+          docker compose config --quiet
+
+  ansible:
+    name: yamllint / ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        working-directory: ansible
+        run: ansible-lint
+
+  security:
+    name: gitleaks / trivy config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          exit-code: "1"
+          severity: HIGH,CRITICAL

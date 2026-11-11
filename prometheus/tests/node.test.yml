@@ -1,0 +1,48 @@
+rule_files:
+  - ../rules/node.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node", instance="compute-01:9100"}'
+        values: "1 1 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NodeExporterDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: NodeExporterDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: node
+              instance: compute-01:9100
+            exp_annotations:
+              summary: "Node compute-01:9100 is not reporting metrics"
+              description: "node_exporter on compute-01:9100 has been unreachable for 2 minutes. The node may be down or isolated."
+
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node", instance="head:9100", mountpoint="/shared", fstype="nfs4"}'
+        values: "5x20"
+      - series: 'node_filesystem_size_bytes{job="node", instance="head:9100", mountpoint="/shared", fstype="nfs4"}'
+        values: "100x20"
+      - series: 'node_filesystem_avail_bytes{job="node", instance="head:9100", mountpoint="/run", fstype="tmpfs"}'
+        values: "1x20"
+      - series: 'node_filesystem_size_bytes{job="node", instance="head:9100", mountpoint="/run", fstype="tmpfs"}'
+        values: "100x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: NodeFilesystemAlmostFull
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node
+              instance: head:9100
+              mountpoint: /shared
+              fstype: nfs4
+            exp_annotations:
+              summary: "Filesystem /shared on head:9100 is over 90% full"
+              description: "Jobs writing to /shared may fail soon."

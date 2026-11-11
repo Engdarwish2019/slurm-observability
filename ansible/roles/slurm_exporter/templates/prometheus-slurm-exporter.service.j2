@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Prometheus Slurm exporter
+After=network-online.target slurmctld.service
+
+[Service]
+User=slurm_exporter
+ExecStart=/usr/local/bin/prometheus-slurm-exporter -listen-address=:{{ slurm_exporter_port }}{{ ' -gpus-acct' if slurm_exporter_gpu_accounting else '' }}
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

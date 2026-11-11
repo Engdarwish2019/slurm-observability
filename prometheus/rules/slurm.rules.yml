@@ -1,0 +1,57 @@
+groups:
+  - name: slurm-recording
+    rules:
+      - record: slurm:cpu_utilisation:ratio
+        expr: slurm_cpus_alloc / slurm_cpus_total
+
+      - record: slurm:gpu_utilisation:ratio
+        expr: slurm_gpus_alloc / slurm_gpus_total
+
+  - name: slurm
+    rules:
+      - alert: SlurmExporterDown
+        expr: up{job="slurm"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Slurm metrics are missing from {{ $labels.instance }}"
+          description: "prometheus-slurm-exporter is unreachable. slurmctld may be down or the exporter crashed."
+
+      - alert: SlurmNodesDown
+        expr: slurm_nodes_down > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slurm reports nodes in DOWN state"
+          description: "Run: sinfo -R to see which nodes are down and why."
+
+      - alert: SlurmNodesDrained
+        expr: slurm_nodes_drain > 0
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Slurm nodes have been draining or drained for 30 minutes"
+          description: "Drained nodes take no new jobs. Run: sinfo -R and resume them with scontrol update state=resume."
+
+      # Jobs are waiting while most CPUs sit idle: usually a partition limit,
+      # a reservation or a misconfigured node, not a lack of capacity.
+      - alert: SlurmJobsPendingWithIdleCPUs
+        expr: slurm_queue_pending > 50 and slurm:cpu_utilisation:ratio < 0.5
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jobs are pending while more than half of the CPUs are idle"
+          description: "Check pending reasons with: squeue -t PD -o '%.18i %.9P %.8u %r'"
+
+      - alert: SlurmClusterSaturated
+        expr: slurm:cpu_utilisation:ratio > 0.95
+        for: 2h
+        labels:
+          severity: info
+        annotations:
+          summary: "Cluster CPUs have been more than 95% allocated for 2 hours"
+          description: "Capacity planning signal: queue wait times are likely growing."

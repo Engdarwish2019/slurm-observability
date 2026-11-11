@@ -1,0 +1,9 @@
+---
+node_exporter_version: "1.8.2"
+node_exporter_arch: amd64
+node_exporter_port: 9100
+node_exporter_allowed_sources: "{{ [monitoring_server ~ '/32'] if monitoring_server is defined else [] }}"
+node_exporter_textfile_dir: /var/lib/node_exporter/textfile
+node_exporter_extra_flags:
+  - --collector.systemd
+  - --collector.textfile.directory={{ node_exporter_textfile_dir }}

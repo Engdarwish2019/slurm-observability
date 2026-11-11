@@ -1,0 +1,42 @@
+groups:
+  - name: node
+    rules:
+      - alert: NodeExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is not reporting metrics"
+          description: "node_exporter on {{ $labels.instance }} has been unreachable for 2 minutes. The node may be down or isolated."
+
+      - alert: NodeFilesystemAlmostFull
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          ) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} is over 90% full"
+          description: "Jobs writing to {{ $labels.mountpoint }} may fail soon."
+
+      - alert: NodeMemoryPressure
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.95
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory on {{ $labels.instance }} is above 95%"
+          description: "Check for jobs exceeding their memory request or a leak in system services."
+
+      - alert: NodeSystemdUnitFailed
+        expr: node_systemd_unit_state{state="failed"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unit {{ $labels.name }} failed on {{ $labels.instance }}"
+          description: "Run: systemctl status {{ $labels.name }}"

@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: slurm_exporter
+  author: Ahmed Darwish
+  description: "prometheus-slurm-exporter built from a pinned tag and run as an unprivileged user on the controller"
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

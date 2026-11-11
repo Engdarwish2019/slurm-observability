@@ -1,0 +1,7 @@
+---
+slurm_exporter_repo: https://github.com/vpenso/prometheus-slurm-exporter.git
+slurm_exporter_version: "0.20"
+slurm_exporter_port: 8080
+slurm_exporter_gpu_accounting: "{{ groups['slurm_gpu'] | default([]) | length > 0 }}"
+slurm_exporter_allowed_sources: "{{ [monitoring_server ~ '/32'] if monitoring_server is defined else [] }}"
+slurm_exporter_build_dir: /opt/prometheus-slurm-exporter

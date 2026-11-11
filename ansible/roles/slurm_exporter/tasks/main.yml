@@ -1,0 +1,51 @@
+---
+- name: Install build dependencies
+  ansible.builtin.dnf:
+    name:
+      - golang
+      - git
+    state: present
+
+- name: Create the exporter user
+  ansible.builtin.user:
+    name: slurm_exporter
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Check out the exporter at a pinned tag
+  ansible.builtin.git:
+    repo: "{{ slurm_exporter_repo }}"
+    dest: "{{ slurm_exporter_build_dir }}"
+    version: "{{ slurm_exporter_version }}"
+    depth: 1
+  notify:
+    - Build slurm_exporter
+    - Restart slurm_exporter
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: prometheus-slurm-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-slurm-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart slurm_exporter
+
+- name: Allow scraping from the monitoring server only
+  ansible.posix.firewalld:
+    rich_rule: rule family="ipv4" source address="{{ item }}" port port="{{ slurm_exporter_port }}" protocol="tcp" accept
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ slurm_exporter_allowed_sources }}"
+
+- name: Build and install the binary before the first start
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the exporter
+  ansible.builtin.systemd_service:
+    name: prometheus-slurm-exporter
+    state: started
+    enabled: true
+    daemon_reload: true

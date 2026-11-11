@@ -1,0 +1,18 @@
+---
+- name: Install node_exporter on every node
+  hosts: all
+  become: true
+  roles:
+    - node_exporter
+
+- name: Install the Slurm exporter on the controller
+  hosts: slurm_controller
+  become: true
+  roles:
+    - slurm_exporter
+
+- name: Install the DCGM exporter on GPU nodes
+  hosts: slurm_gpu
+  become: true
+  roles:
+    - dcgm_exporter

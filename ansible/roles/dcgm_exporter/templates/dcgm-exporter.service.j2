@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=NVIDIA DCGM exporter (Podman)
+After=network-online.target nvidia-persistenced.service
+Wants=network-online.target
+
+[Service]
+ExecStartPre=-/usr/bin/podman rm -f dcgm-exporter
+ExecStart=/usr/bin/podman run --name dcgm-exporter --rm \
+  --device nvidia.com/gpu=all --cap-add SYS_ADMIN \
+  -p {{ dcgm_exporter_port }}:9400 {{ dcgm_exporter_image }}
+ExecStop=/usr/bin/podman stop -t 10 dcgm-exporter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

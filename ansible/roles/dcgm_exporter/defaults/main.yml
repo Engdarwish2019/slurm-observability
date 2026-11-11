@@ -1,0 +1,5 @@
+---
+dcgm_exporter_image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.9-3.6.1-ubuntu22.04
+dcgm_exporter_port: 9400
+dcgm_exporter_toolkit_repo: https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+dcgm_exporter_allowed_sources: "{{ [monitoring_server ~ '/32'] if monitoring_server is defined else [] }}"

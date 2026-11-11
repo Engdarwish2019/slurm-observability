@@ -1,0 +1,53 @@
+rule_files:
+  - ../rules/slurm.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'slurm_queue_pending{job="slurm", instance="head:8080"}'
+        values: "120x60"
+      - series: 'slurm_cpus_alloc{job="slurm", instance="head:8080"}'
+        values: "10x60"
+      - series: 'slurm_cpus_total{job="slurm", instance="head:8080"}'
+        values: "100x60"
+    promql_expr_test:
+      - expr: slurm:cpu_utilisation:ratio
+        eval_time: 5m
+        exp_samples:
+          - labels: 'slurm:cpu_utilisation:ratio{job="slurm", instance="head:8080"}'
+            value: 0.1
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: SlurmJobsPendingWithIdleCPUs
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: SlurmJobsPendingWithIdleCPUs
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: slurm
+              instance: head:8080
+            exp_annotations:
+              summary: "Jobs are pending while more than half of the CPUs are idle"
+              description: "Check pending reasons with: squeue -t PD -o '%.18i %.9P %.8u %r'"
+
+  - interval: 1m
+    input_series:
+      - series: 'slurm_nodes_down{job="slurm", instance="head:8080"}'
+        values: "0 0 2x20"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SlurmNodesDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SlurmNodesDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: slurm
+              instance: head:8080
+            exp_annotations:
+              summary: "Slurm reports nodes in DOWN state"
+              description: "Run: sinfo -R to see which nodes are down and why."
